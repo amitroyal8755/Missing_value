@@ -1,0 +1,42 @@
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from scipy.stats import chi2_contingency, ttest_ind
+from sklearn.preprocessing import LabelEncoder
+
+def check_missingness(data, column):
+
+    missing = data[column].isnull()
+    # Encode categorical variables only if necessary
+    data_encoded = data.copy()
+    label_encoders = {}
+    for col in data_encoded.columns:
+        if data_encoded[col].dtype == 'object' or pd.api.types.is_categorical_dtype(data_encoded[col]):
+            le = LabelEncoder()
+            data_encoded[col] = le.fit_transform(data_encoded[col].astype(str))
+            label_encoders[col] = le
+
+    # Statistical tests
+    result = 'Undetermined'
+
+    for col in data.columns:
+        if col != column and data[col].notnull().sum() > 0:
+            if data[col].dtype == 'object' or pd.api.types.is_categorical_dtype(data[col]):
+                # Chi-squared test for categorical variables
+                contingency_table = pd.crosstab(missing, data[col])
+                chi2, p, dof, expected = chi2_contingency(contingency_table)
+                if p < 0.05:
+                    result = 'MAR'
+                    break
+            else:
+                # T-test for continuous variables
+                t_stat, p = ttest_ind(data_encoded.loc[missing, col].dropna(), data_encoded.loc[~missing, col].dropna())
+                if p < 0.05:
+                    result = 'MAR'
+                    break
+
+    if result == 'Undetermined':
+        result = 'MNAR'
+
+    return result
