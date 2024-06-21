@@ -1,6 +1,6 @@
 import pandas as pd
 from scipy.stats import chi2_contingency, combine_pvalues
-
+import numpy as np
 def test_mcar(df, col):
     df1 = df.copy()
     df1["missing_indicator"] = df1[col].isnull().astype(int)
